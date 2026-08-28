@@ -1,0 +1,3 @@
+Un guardia de seguridad tiene que revisar constantemente los espacios libres de estacionamiento, para ello tenemos que crear una aplicación que se encargue de esta tarea. Cual seria el patron de diseño y lenguaje de programación mas recomendado para dicha aplicación?
+
+El patron de diseño mas recomendado seria una basada en eventos para revisar constantemente el estado de los espacios del estacionamiento, en cuanto a lenguaje de programación usaría python ya que normalmente hay un montón de herramientas y librerías para el reconocimiento de imágenes para hacer análisis en tiempo real. La construcción de la aplicación usaremos Laravel que facilita y agiliza el la conexión del back con el front. Y base de datos usaremos una relacional ya que es fácil de implementar. 
