@@ -1,0 +1,28 @@
+services:
+  recomendar:
+    build: ./recomendar
+    container_name: servicio-recomendar
+    expose:
+      - "8002"
+
+  pedidos:
+    build: ./pedidos
+    container_name: servicio-pedidos
+    environment:
+      - RECOMENDAR_URL=http://recomendar:8002
+    expose:
+      - "8001"
+    depends_on:
+      - recomendar
+
+  gateway:
+    image: nginx:alpine
+    container_name: gateway-entregas
+    ports:
+      - "8080:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./gateway/html:/usr/share/nginx/html:ro
+    depends_on:
+      - pedidos
+      - recomendar

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plataforma de Entregas — Microservicios con Docker</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+    }
+    h1 { margin-bottom: 0.2rem; }
+    .subtitle { color: #64748b; margin-top: 0; margin-bottom: 1.5rem; font-size: 0.95rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #475569;
+      gap: 0.25rem;
+    }
+    input, select {
+      padding: 0.5rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.9; }
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #334155;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+    }
+    .salud-box {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .badge-ok { background: #dcfce7; color: var(--success); }
+    .badge-down { background: #fee2e2; color: var(--danger); }
+    .flow-card {
+      background: #f1f5f9;
+      border-left: 4px solid var(--primary);
+      padding: 0.85rem 1rem;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Crear pedido</h1>
+  <p class="subtitle">Arquitectura de Microservicios: el navegador solo se comunica con el <strong>API Gateway (puerto 8080)</strong>.</p>
+
+  <div class="card">
+    <div class="salud-box">
+      <strong>Estado de los servicios:</strong>
+      <button type="button" class="btn-secondary" id="btnSalud">Consultar Salud</button>
+      <span id="saludPedidos" class="badge">Pedidos: pendiente</span>
+      <span id="saludRecomendar" class="badge">Recomendar: pendiente</span>
+    </div>
+  </div>
+
+  <form id="f" class="card">
+    <h3 style="margin-top:0">Datos del Paquete</h3>
+    
+    <div class="grid">
+      <label>
+        Modelo de IA
+        <select name="modelo" id="modelo">
+          <option value="arbol">Árbol de Decisión</option>
+          <option value="bosque">Random Forest</option>
+          <option value="red">Red Neuronal (MLP)</option>
+        </select>
+      </label>
+
+      <label>
+        Distancia (km)
+        <input type="number" step="0.01" name="distancia_km" value="12.64" required>
+      </label>
+
+      <label>
+        Peso (kg)
+        <input type="number" step="0.01" name="peso_kg" value="0.31" required>
+      </label>
+
+      <label>
+        Hora de Salida (0–23)
+        <input type="number" name="hora_salida" value="3" min="0" max="23" required>
+      </label>
+
+      <label>
+        Largo (cm)
+        <input type="number" step="0.1" name="largo_cm" value="11.7" required>
+      </label>
+
+      <label>
+        Ancho (cm)
+        <input type="number" step="0.1" name="ancho_cm" value="7.6" required>
+      </label>
+
+      <label>
+        Alto (cm)
+        <input type="number" step="0.1" name="alto_cm" value="10.6" required>
+      </label>
+
+      <label>
+        Volumen (litros)
+        <input type="number" step="0.01" name="volumen_l" value="0.94" required>
+      </label>
+
+      <label>
+        Valor Declarado (MXN)
+        <input type="number" step="1" name="valor_declarado_mxn" value="4603" required>
+      </label>
+
+      <label>
+        ¿Frágil?
+        <select name="fragil">
+          <option value="0">0 - No</option>
+          <option value="1">1 - Sí</option>
+        </select>
+      </label>
+
+      <label>
+        ¿Refrigerado?
+        <select name="refrigerado">
+          <option value="0">0 - No</option>
+          <option value="1">1 - Sí</option>
+        </select>
+      </label>
+
+      <label>
+        Prioridad
+        <select name="prioridad">
+          <option value="mismo_dia">mismo_dia</option>
+          <option value="estandar">estandar</option>
+          <option value="urgente">urgente</option>
+        </select>
+      </label>
+
+      <label>
+        Zona de Destino
+        <select name="zona_destino">
+          <option value="periferia">periferia</option>
+          <option value="centro">centro</option>
+          <option value="rural">rural</option>
+        </select>
+      </label>
+
+      <label>
+        Clima
+        <select name="clima">
+          <option value="despejado">despejado</option>
+          <option value="lluvia">lluvia</option>
+          <option value="tormenta">tormenta</option>
+        </select>
+      </label>
+
+      <label>
+        Tráfico
+        <select name="trafico">
+          <option value="medio">medio</option>
+          <option value="bajo">bajo</option>
+          <option value="alto">alto</option>
+        </select>
+      </label>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+      <button type="submit" id="btnEnviar">Enviar Pedido a /pedidos</button>
+    </div>
+  </form>
+
+  <div class="card" id="cardResultado" style="display:none;">
+    <h3 style="margin-top:0">Resultado del Pedido</h3>
+    
+    <div id="flujoExplicado" class="flow-card"></div>
+
+    <h4 style="margin-bottom:0.25rem;">Respuesta JSON del Gateway</h4>
+    <pre id="salida"></pre>
+  </div>
+
+  <script>
+    const form = document.getElementById("f");
+    const salida = document.getElementById("salida");
+    const cardResultado = document.getElementById("cardResultado");
+    const flujoExplicado = document.getElementById("flujoExplicado");
+
+    const saludPedidos = document.getElementById("saludPedidos");
+    const saludRecomendar = document.getElementById("saludRecomendar");
+    const btnSalud = document.getElementById("btnSalud");
+
+    async function verificarSalud() {
+      // Salud de Pedidos
+      try {
+        const r1 = await fetch("/salud/pedidos");
+        if (r1.ok) {
+          saludPedidos.className = "badge badge-ok";
+          saludPedidos.textContent = "Pedidos: Online (OK)";
+        } else {
+          saludPedidos.className = "badge badge-down";
+          saludPedidos.textContent = "Pedidos: Error HTTP " + r1.status;
+        }
+      } catch (e) {
+        saludPedidos.className = "badge badge-down";
+        saludPedidos.textContent = "Pedidos: Inalcanzable";
+      }
+
+      // Salud de Recomendar
+      try {
+        const r2 = await fetch("/salud/recomendar");
+        if (r2.ok) {
+          saludRecomendar.className = "badge badge-ok";
+          saludRecomendar.textContent = "Recomendar: Online (OK)";
+        } else {
+          saludRecomendar.className = "badge badge-down";
+          saludRecomendar.textContent = "Recomendar: Error HTTP " + r2.status;
+        }
+      } catch (e) {
+        saludRecomendar.className = "badge badge-down";
+        saludRecomendar.textContent = "Recomendar: Inalcanzable (Caído)";
+      }
+    }
+
+    btnSalud.addEventListener("click", verificarSalud);
+    window.addEventListener("load", verificarSalud);
+
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const raw = Object.fromEntries(new FormData(form).entries());
+
+      // Parse numeric fields
+      const camposNumericos = [
+        "distancia_km", "peso_kg", "hora_salida", "largo_cm", "ancho_cm",
+        "alto_cm", "volumen_l", "fragil", "refrigerado", "valor_declarado_mxn"
+      ];
+      camposNumericos.forEach((c) => {
+        if (raw[c] !== undefined) raw[c] = Number(raw[c]);
+      });
+
+      cardResultado.style.display = "block";
+      salida.textContent = "Procesando petición a través del Gateway...";
+
+      try {
+        // Petición al API Gateway: sin host ni puerto de pedidos o recomendar
+        const r = await fetch("/pedidos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(raw),
+        });
+
+        const cuerpo = await r.json();
+        salida.textContent = "HTTP " + r.status + "\n" + JSON.stringify(cuerpo, null, 2);
+
+        // Explicación didáctica del camino recorrido
+        if (cuerpo.folio) {
+          let textoFlujo = "<strong>Recorrido del pedido:</strong><br>";
+          textoFlujo += "1. Navegador ➔ Gateway (Nginx :8080)<br>";
+          textoFlujo += "2. Gateway enruta ➔ Servicio Pedidos (interno :8001)<br>";
+          if (cuerpo.plan_b) {
+            textoFlujo += "3. Pedidos intentó llamar a Recomendar (:8002), pero falló la conexión (<strong>Fallo Parcial detectado</strong>).<br>";
+            textoFlujo += `4. Pedidos activó el <strong>Plan B</strong> de contingencia: asignó <strong>${cuerpo.medio}</strong> con folio <strong>${cuerpo.folio}</strong>.`;
+          } else {
+            textoFlujo += "3. Pedidos llamó por HTTP ➔ Servicio Recomendar (interno :8002/sugerir)<br>";
+            textoFlujo += `4. Recomendar evaluó modelo <strong>${cuerpo.modelo}</strong> y reglas de negocio.<br>`;
+            textoFlujo += `5. Pedidos recibió sugerencia, generó folio <strong>${cuerpo.folio}</strong> y asignó medio <strong>${cuerpo.medio}</strong> (${cuerpo.motivo}).`;
+          }
+          flujoExplicado.innerHTML = textoFlujo;
+        } else {
+          flujoExplicado.innerHTML = "<strong>Error al procesar el pedido:</strong><br>" + (cuerpo.error || "Respuesta desconocida");
+        }
+
+      } catch (err) {
+        salida.textContent = "Error de red con el Gateway: " + err.message;
+        flujoExplicado.innerHTML = "No se pudo contactar al API Gateway en el puerto 8080.";
+      }
+    });
+  </script>
+</body>
+</html>
