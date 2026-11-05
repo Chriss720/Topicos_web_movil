@@ -1,4 +1,4 @@
-# Actividad 1
+# Actividad 1 — Análisis de Arquitectura y Patrones de Diseño
 **Materia:** Tópicos Selectos de Tecnologías Web y Móvil
 
 ---
@@ -21,7 +21,7 @@
 **Caso de uso:** Pagar la inscripción (`POST /pagos`)
 
 1. **Intercepción HTTP:** Middleware (`Chain of Responsibility` / `Intercepting Filter`)
-   - Valida la sesión y bloquea peticiones duplicadas por doble clic antes de procesar el pago.
+   - Valida la sesión activa y bloquea peticiones duplicadas por doble clic antes de procesar el pago.
 
 2. **Enrutamiento:** Router (`Front Controller`)
    - Recibe `POST /pagos` y mapea la petición al controlador correspondiente.
@@ -43,3 +43,43 @@
 
 8. **Respuesta HTTP:** JSONResponse (`DTO`)
    - Retorna `200 OK` con el folio y estado del pago de inmediato.
+
+---
+
+## Misión 3 — Políticas transversales
+
+### 1. ¿Cuándo corresponde Front Controller y por qué?
+Corresponde cuando una aplicación web maneja múltiples rutas y páginas que comparten necesidades comunes (autenticación, manejo de sesiones, formato de respuesta, captura global de errores).
+- **Por qué:** Centraliza la recepción de todas las peticiones HTTP en un único punto de entrada en lugar de tener 40 scripts independientes. Esto permite aplicar políticas transversales de forma uniforme y enrutar las solicitudes a sus controladores sin duplicar infraestructura.
+
+### 2. ¿Qué mecanismo ya ofrece Spring, Laravel o Express para no escribir un frontal casero?
+Los marcos modernos ya instancian este patrón de fábrica:
+- **Spring:** `DispatcherServlet` (Front Controller) junto con `HandlerInterceptor` / `OncePerRequestFilter`.
+- **Laravel:** Punto de entrada único `public/index.php` con el enrutador y la cadena de `HTTP Middleware` (`Kernel.php`).
+- **Express:** El objeto `app` y la tubería de `app.use(middleware)`.
+- **Conclusión:** No se debe implementar una clase `FrontController` ni una estructura `ChainOfResponsibility` casera en GoF, ya que el marco de trabajo ya lo gestiona de forma transparente.
+
+### 3. Orden propuesto de la cadena de políticas transversales
+1. **Autenticación / Sesión:** Validar la identidad y la validez del token/sesión del usuario.
+2. **Bitácora (Logging):** Registrar la petición entrante ya asociada al usuario autenticado.
+3. **Cupo de inscripciones (Filtro preliminar de tráfico):** Verificar disponibilidad general antes de iniciar operaciones pesadas.
+4. **Caso de Uso (Controlador / Dominio):** Ejecutar la lógica de negocio y el cobro.
+
+> **Justificación de seguridad:** Autenticar *después* del cobro es un **error de diseño crítico**. La autenticación es una precondición de la infraestructura que asegura que el solicitante tiene permiso para operar. Ejecutar primero el cobro implica realizar operaciones financieras irreversibles a usuarios anónimos o no autorizados antes de saber si tienen derecho a realizar la transacción.
+
+### 4. ¿Qué NO debe hacer esa cadena? (Las políticas transversales no son el reglamento)
+La cadena de middlewares **no debe contener lógica de dominio ni reglas de negocio** (el "reglamento" universitario).
+- **Lo que SÍ hace la cadena:** Manejo de protocolo HTTP, validación de tokens de sesión, formato de cabeceras, logging de red y límite de peticiones (rate limiting).
+- **Lo que NO debe hacer:** No debe validar prerrequisitos académicos, ni calcular costos de inscripción, ni aplicar descuentos, ni modificar entidades de la base de datos. Esas reglas pertenecen a la **capa de aplicación/dominio** (servicios de dominio). Mezclar reglas de negocio en los filtros acopla la lógica al protocolo HTTP e impide reutilizarla en otros canales (como comandos CLI, tareas en segundo plano o APIs secundarias).
+
+---
+
+## Análisis General de Anti-patrones en el Código del Proyecto (`proyectoe`)
+
+1. **Acoplamiento por copia y pega (Punto 1):** 40 archivos independientes copiando validación de sesión y encabezados HTML. Solución: Usar el router y middlewares del marco.
+2. **Violación de Abierto/Cerrado en Pagos (Punto 2):** Script `pagar.php` con `switch` de 200 líneas. Solución: Aplicar el patrón **Adapter** por banco e inyectarlo vía **Strategy**.
+3. **Falta de capa de persistencia (Punto 3):** SQL embebido directamente en las plantillas HTML del kardex. Solución: Abstraer las consultas dentro de la capa de datos mediante **Repository**.
+4. **Acoplamiento síncrono de efectos secundarios (Punto 4):** El flujo de pago llama directamente y en el mismo hilo a correo y alta de materias. Solución: Usar **Domain Events (Pub-Sub)** asíncronos y añadir **Idempotency Key** para evitar cobros dobles por clics repetidos.
+5. **Falta de adaptación por tipo de cliente (Punto 5):** 12 peticiones de la app móvil. Solución: Crear endpoints orientados al cliente mediante **BFF (Backend for Frontend)**.
+6. **Propagación de fallos en cascada (Punto 6):** Caídas de APIs externas (banco/CURP) bloquean la consulta del Kardex. Solución: Aislar servicios externos con **Circuit Breaker** y **Fallback**.
+7. **Sobreingeniería (Punto 7):** Propuestas de Event Sourcing y CQRS para la descarga simple de constancias en PDF. Solución: Mantener un flujo de lectura directo simple y sin complejidad innecesaria.
